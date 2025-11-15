@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ezan ve Hava Durumu - Canlı</title>
+
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+            color: #fff;
+            text-align: center;
+            padding: 20px;
+            transition: background 2s, color 1s;
+        }
+        .card {
+            background: rgba(0,0,0,0.5);
+            padding: 20px;
+            border-radius: 15px;
+            max-width: 550px;
+            margin: 20px auto;
+            box-shadow: 0 0 20px rgba(0,255,255,0.2);
+        }
+        select, button, input {
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 10px;
+            border: none;
+        }
+        button { background: #00ffc1; color: #000; cursor: pointer; font-weight: bold; }
+        h1 { text-shadow: 2px 2px 8px #00ffc1; }
+        .weather-icon { font-size: 50px; }
+        .prayer-times { font-size: 0.9em; margin-top: 5px; }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <h1>🌍 Hava Durumu + 🕌 Ezan Vakitleri</h1>
+
+    <div class="card">
+        <h2>Şehir Seç veya Ara</h2>
+        <input type="text" id="searchCity" placeholder="Şehir adı yazın" oninput="filterCities()" />
+        <select id="citySelect" size="8" style="width:100%"></select>
+        <button onclick="getData()">Göster</button>
+    </div>
+
+    <div id="weather" class="card"></div>
+    <div id="prayer" class="card"></div>
+
+    <script>
+        const cities = {
+            "Istanbul,TR": {lat:41.0082, lon:28.9784},
+            "Ankara,TR": {lat:39.9334, lon:32.8597},
+            "Izmir,TR": {lat:38.4237, lon:27.1428},
+            "London,GB": {lat:51.5074, lon:-0.1278},
+            "Berlin,DE": {lat:52.52, lon:13.4050},
+            "New York,US": {lat:40.7128, lon:-74.0060}
+        };
+
+        const citySelect = document.getElementById('citySelect');
+
+        function populateCities() {
+            citySelect.innerHTML = '';
+            for (let c in cities) {
+                let option = document.createElement('option');
+                option.value = c;
+                option.text = c.replace(',', ', ');
+                citySelect.add(option);
+            }
+        }
+        populateCities();
+
+        function filterCities() {
+            const filter = document.getElementById('searchCity').value.toLowerCase();
+            citySelect.innerHTML = '';
+            for (let c in cities) {
+                if (c.toLowerCase().includes(filter)) {
+                    let option = document.createElement('option');
+                    option.value = c;
+                    option.text = c.replace(',', ', ');
+                    citySelect.add(option);
+                }
+            }
+        }
+
+        async function getData() {
+            const cityFull = citySelect.value;
+            if(!cityFull) return alert("Lütfen bir şehir seçin.");
+            const [city, country] = cityFull.split(',');
+
+            const weatherAPI = `https://api.open-meteo.com/v1/forecast?latitude=${cities[cityFull].lat}&longitude=${cities[cityFull].lon}&current_weather=true`;
+            const w = await fetch(weatherAPI);
+            const weatherData = await w.json();
+
+            document.getElementById("weather").innerHTML = `
+                <h2>Hava Durumu (${city})</h2>
+                <p class="weather-icon"><i class="fas fa-sun"></i></p>
+                <p>Sıcaklık: ${weatherData.current_weather.temperature}°C</p>
+                <p>Rüzgar: ${weatherData.current_weather.windspeed} km/h</p>
+            `;
+
+            const prayerAPI = `https://api.aladhan.com/v1/timingsByCity?city=${city}&country=${country}&method=13`;
+            const p = await fetch(prayerAPI);
+            const prayerData = await p.json();
+            const times = prayerData.data.timings;
+
+            document.getElementById("prayer").innerHTML = `
+                <h2>Ezan Vakitleri (${city})</h2>
+                <div class='prayer-times'>İmsak: ${times.Fajr}</div>
+                <div class='prayer-times'>Güneş: ${times.Sunrise}</div>
+                <div class='prayer-times'>Öğle: ${times.Dhuhr}</div>
+                <div class='prayer-times'>İkindi: ${times.Asr}</div>
+                <div class='prayer-times'>Akşam: ${times.Maghrib}</div>
+                <div class='prayer-times'>Yatsı: ${times.Isha}</div>
+            `;
+        }
+    </script>
+</body>
+</html>
